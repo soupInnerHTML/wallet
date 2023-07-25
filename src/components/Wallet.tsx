@@ -4,14 +4,22 @@ import {wallet} from "../store";
 import {useLocation, useNavigate, useSearchParams} from "react-router-dom";
 import {Routes, withParams} from "../router";
 import {Loader} from "./Loader";
+import {shortcutAddress} from '../utils/shortcut'
+import {copyText} from "../utils/copyText";
+import {voidHref} from "../global";
 
 export const Wallet = observer(() => {
   const [searchParams] = useSearchParams();
+  const [fee, setFee] = useState('')
   const [isSending, setIsSending] = useState(searchParams.get('sending') ?? false)
   const [to, setTo] = useState(searchParams.get('to') ?? '')
   const [amount, setAmount] = useState(searchParams.get('amount') ?? '0.001');
   const navigate = useNavigate()
   const location = useLocation();
+
+  const isEnoughBalance = wallet.balance ? fee + amount <= wallet.balance : true;
+  const isSendButtonDisabled = isSending ? wallet.sendLoading || !isEnoughBalance : false
+
   async function send() {
     const hash = await wallet.send(to, amount)
     hash && navigate(withParams(Routes.TRANSACTION_SUCCESS, [hash]));
@@ -22,19 +30,37 @@ export const Wallet = observer(() => {
     }
   }, [wallet.isAuthenticated])
 
+  useEffect(() => {
+    if(to && amount) {
+      wallet.getEstimatedTxFee(to, amount).then(estimatedFee => setFee(estimatedFee.toString()))
+    }
+  }, [to, amount])
+
   return <>
-    <p>{wallet.address}</p>
-    {wallet.balance ? <p>{wallet.balance} ETH</p> : <Loader></Loader>}
+    {wallet.address ? <a
+      {...voidHref}
+      title={wallet.address}
+      onClick={() => copyText(wallet.address!, 'wallet address')}
+    >
+      {shortcutAddress(wallet.address)}
+    </a> : null}
+    <br/>
+    {wallet.balance ? <a style={{color: '#fff'}} title={wallet.balance + ' ETH'}>
+      {Number(wallet.balance).toFixed(6)} ETH
+    </a> : <Loader></Loader>}
+    <br/>
     {<form onSubmit={(e) => {
       e.preventDefault()
       isSending ? send() : setIsSending(true)
     }}>
       {isSending &&  <>
-        <input disabled={wallet.sendLoading} value={to} onChange={e => setTo(e.target.value)} required type="text" placeholder={'to eth address'}/>
-        <input disabled={wallet.sendLoading} min={0.00001} value={amount} required onChange={e => setAmount(e.target.value)} type="number" placeholder={'amount'}/>
+        <input disabled={wallet.sendLoading} pattern={'0x\\w+'} value={to} onChange={e => setTo(e.target.value)} required type="text" placeholder={'to eth address'}/>
+        <input disabled={wallet.sendLoading} step={0.00001} min={0.00001} value={amount} required onChange={e => setAmount(e.target.value)} type="number" placeholder={'amount'}/>
+        {fee && <p>estimated fee: {fee} ETH</p>}
+        {!isEnoughBalance && <p className={'red'}>Insufficient funds</p>}
       </>}
 
-      <button type={'submit'} disabled={wallet.sendLoading}>send</button>
+      <button type={'submit'} disabled={isSendButtonDisabled}>send</button>
       {wallet.sendLoading && <Loader></Loader>}
     </form>}
 
@@ -45,6 +71,10 @@ export const Wallet = observer(() => {
     <br/>
 
     <button onClick={() => navigate(Routes.HISTORY)}>history of transactions</button>
+
+    <br/>
+
+    <button onClick={() => navigate(Routes.STAKE)}>stake</button>
 
     <br/>
 

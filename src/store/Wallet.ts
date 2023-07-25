@@ -1,22 +1,32 @@
-import {Contract, ethers} from "ethers";
+import {BigNumber, ethers} from "ethers";
+import Web3 from 'web3'
 import {makeAutoObservable} from "mobx";
 import {makePersistable} from "mobx-persist-store";
 import {secureStorage} from "../storage";
+import {STAKING_CONTRACT_ADDRESS} from "../contracts/addresses";
+import stakingAbi from 'contracts/abi/staking.json'
 
-const abi = [{"constant":true,"inputs":[],"name":"name","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"spender","type":"address"},{"name":"value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"spender","type":"address"},{"name":"addedValue","type":"uint256"}],"name":"increaseAllowance","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"mint","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"owner","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"account","type":"address"}],"name":"addMinter","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[],"name":"renounceMinter","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"spender","type":"address"},{"name":"subtractedValue","type":"uint256"}],"name":"decreaseAllowance","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"account","type":"address"}],"name":"isMinter","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"inputs":[{"name":"name","type":"string"},{"name":"symbol","type":"string"},{"name":"decimals","type":"uint8"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"name":"account","type":"address"}],"name":"MinterAdded","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"account","type":"address"}],"name":"MinterRemoved","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"}]
+const web3 = new Web3('https://goerli.infura.io/v3/d87b55ad8191420d834014708a0a0f17')
 
 class Wallet {
   get isAuthenticated() {
     return Boolean(this.address)
   };
-  private _network = 'goerli';
-  private _provider = ethers.getDefaultProvider(this._network)
+  private _network = 'https://goerli.infura.io/v3/d87b55ad8191420d834014708a0a0f17';
+  private get _provider() {
+    return new ethers.providers.JsonRpcProvider(this._network)
+  }
+  private async getStakingContract() {
+    const signer = new ethers.Wallet(this.privateKey!, this._provider)
+    return new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingAbi, signer);
+  }
   balance: string | null = null;
   address: string | null = null;
   privateKey: string | null = null;
   sendLoading = false;
   history:  ethers.providers.TransactionResponse[] = []
-  historyLoading = true
+  historyLoading = true;
+  staked: string | null = null;
 
   async send(to: string, amountInEther: string) {
     try {
@@ -43,9 +53,19 @@ class Wallet {
       this.sendLoading = false
     }
   }
-  async signIn(seed: string) {
+  async signInBySeed(seed: string) {
     try {
       let wallet = ethers.Wallet.fromMnemonic(seed);
+      this.setUp(wallet);
+      return true;
+    }
+    catch (e) {
+      alert(e)
+    }
+  }
+  async signInByPrivateKey(privateKey: string) {
+    try {
+      let wallet = new ethers.Wallet(privateKey);
       this.setUp(wallet);
       return true;
     }
@@ -66,14 +86,49 @@ class Wallet {
     const balance = await this._provider.getBalance(address)
     this.balance = ethers.utils.formatEther(balance)
   }
-  async getEstimatedTxFee() {
-    const gasPrice = await this._provider.getGasPrice();
-    const gasUnits =
-      await new Contract(
-        '0x7af963cF6D228E564e2A0aA0DdBF06210B38615D',
-        abi,
-       this._provider
-      ).estimateGas.functionName(params);
+  async getEstimatedTxFee(to: string, value: string) {
+    try {
+      const gasPrice = await web3.eth.getGasPrice();
+      const gasLimit = await web3.eth.estimateGas({
+        from: this.address!,
+        to: '0xB1D9330c1aA31FE3b56596c3f70b2e9F990D98C3',
+        value: web3.utils.toHex(web3.utils.toWei(value, 'ether')),
+      })
+
+      return web3.utils.fromWei(BigNumber.from(gasLimit).mul(BigNumber.from(gasPrice)).toString())
+    }
+    catch (e) {
+      return ''
+    }
+
+  }
+  async stake(amount: string) {
+    const stakingContract = await this.getStakingContract()
+    const tx: ethers.providers.TransactionResponse = await stakingContract.stake({ value: ethers.utils.parseEther(amount) });
+    this.getStakedTokens()
+    return tx.hash
+  }
+  async unstake() {
+    try {
+      const stakingContract = await this.getStakingContract()
+      const tx = await stakingContract.unstake();
+      console.log(tx);
+      await this.getStakedTokens()
+    }
+    catch (e: any) {
+      alert('staked period not complete.')
+    }
+  }
+  async getStakedTokens() {
+    const stakingContract = await this.getStakingContract()
+    const stakedAmount = await stakingContract.balances(this.address);
+    this.staked = ethers.utils.formatEther(stakedAmount)
+    console.log(this.staked)
+  }
+  async getStakedPeriod() {
+    const stakingContract = await this.getStakingContract()
+    const stakedPeriod = await stakingContract.stakingTimestamps(this.address);
+    console.log(stakedPeriod)
   }
   async getHistory(address: string) {
     this.historyLoading = true;
@@ -83,7 +138,7 @@ class Wallet {
     this.historyLoading = false;
   }
   getLink(entity: 'address' | 'tx' | string, hash: string) {
-    return `https://${this._network}.etherscan.io/${entity}/${hash}`
+    return `https://goerli.etherscan.io/${entity}/${hash}`
   }
   logout() {
     localStorage.clear();

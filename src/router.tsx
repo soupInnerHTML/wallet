@@ -1,9 +1,10 @@
 import {createBrowserRouter} from "react-router-dom";
-import {Auth, TransactionSuccess, Wallet} from "./components ";
+import {Auth, TransactionSuccess, Wallet} from "./components";
 import React from "react";
-import {Receive} from "./components /Receive";
-import {WalletCreation} from "./components /WalletCreation";
-import {History} from "./components /History";
+import {Receive} from "./components/Receive";
+import {WalletCreation} from "./components/WalletCreation";
+import {History} from "./components/History";
+import {Stake} from "./components/Stake";
 
 export function withParams(route: string, params: string[], isRouterCreation?: boolean) {
   return `${route}/${isRouterCreation ? ':' : ''}${params.join(isRouterCreation ? '/:' : '/')}`
@@ -14,7 +15,8 @@ export const Routes = {
   WALLET_CREATION: '/wallet-creation',
   TRANSACTION_SUCCESS: "/transaction-success",
   RECEIVE: '/receive',
-  HISTORY: '/history'
+  HISTORY: '/history',
+  STAKE: '/stake'
 }
 
 export const router = createBrowserRouter([
@@ -41,5 +43,9 @@ export const router = createBrowserRouter([
   {
     path: Routes.HISTORY,
     element: <History />,
+  },
+  {
+    path: Routes.STAKE,
+    element: <Stake />,
   },
 ]);
