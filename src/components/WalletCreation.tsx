@@ -4,7 +4,6 @@ import {wallet} from "../store";
 import {Routes} from "../router";
 import {useNextParam} from "../hooks/useNextParam";
 import {copyText} from "../utils/copyText";
-import {voidHref} from "../global";
 
 export const WalletCreation: FC = () => {
   const {seed} = useParams()
@@ -17,7 +16,6 @@ export const WalletCreation: FC = () => {
     </p>
     <p>
       <a
-        {...voidHref}
         onClick={() => copyText(seed!, 'seed phrase')}
       >
         copy

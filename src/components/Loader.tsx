@@ -1,12 +1,11 @@
+import { Loading } from '@web3uikit/core';
 import React, {FC} from 'react';
 
 export const Loader: FC = () => {
   return (
-    <div className="lds-ellipsis">
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-    </div>
+    <Loading
+      size={40}
+      spinnerColor="#2E7DAF"
+    />
   );
 };

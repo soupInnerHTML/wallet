@@ -5,6 +5,15 @@ import {makePersistable} from "mobx-persist-store";
 import {secureStorage} from "../storage";
 import {STAKING_CONTRACT_ADDRESS} from "../contracts/addresses";
 import stakingAbi from 'contracts/abi/staking.json'
+import {shortcutAddress} from "../utils/shortcut";
+import {Chains, IChain} from "../global/chains";
+import {notification} from "../utils/notification";
+
+const console = {
+  log(e: string) {
+    console.log(e)
+  }
+}
 
 const web3 = new Web3('https://goerli.infura.io/v3/d87b55ad8191420d834014708a0a0f17')
 
@@ -12,27 +21,46 @@ class Wallet {
   get isAuthenticated() {
     return Boolean(this.address)
   };
-  private _network = 'https://goerli.infura.io/v3/d87b55ad8191420d834014708a0a0f17';
-  private get _provider() {
-    return new ethers.providers.JsonRpcProvider(this._network)
+  chain = Chains.goerli;
+  isChain(searchChain: IChain) {
+    return this.chain.name === searchChain.name
+  }
+  get network() {
+    return this.chain.rpc;
+  }
+  get provider() {
+    return new ethers.providers.JsonRpcProvider(this.network)
   }
   private async getStakingContract() {
-    const signer = new ethers.Wallet(this.privateKey!, this._provider)
+    const signer = new ethers.Wallet(this.privateKey!, this.provider)
     return new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingAbi, signer);
   }
   balance: string | null = null;
+
+  get symbol() {
+    return this.chain.currency
+  }
+
+  symbolical(amount: number | string) {
+    return `${amount} ${this.symbol}`
+  }
+
+  get niceBalance() {
+    return this.symbolical(Number(this.balance).toFixed(6))
+  }
   address: string | null = null;
+  get niceAddress() {
+    return this.address ? shortcutAddress(this.address) : ''
+  }
   privateKey: string | null = null;
   sendLoading = false;
-  history:  ethers.providers.TransactionResponse[] = []
-  historyLoading = true;
   staked: string | null = null;
 
   async send(to: string, amountInEther: string) {
     try {
       this.sendLoading = true;
       // Create a wallet instance
-      let wallet = new ethers.Wallet(this.privateKey!, this._provider)
+      let wallet = new ethers.Wallet(this.privateKey!, this.provider)
 
       // Create a transaction object
       let tx: ethers.utils.Deferrable<ethers.providers.TransactionRequest> = {
@@ -46,8 +74,8 @@ class Wallet {
       // => 0x9c172314a693b94853b49dc057cf1cb8e529f29ce0272f451eea8f5741aa9b58
       // A transaction result can be checked in a etherscan with a transaction hash which can be obtained here.
     }
-    catch (e) {
-      alert(e)
+    catch (e: any) {
+      notification.error({message: e})
     }
     finally {
       this.sendLoading = false
@@ -59,8 +87,8 @@ class Wallet {
       this.setUp(wallet);
       return true;
     }
-    catch (e) {
-      alert(e)
+    catch (e: any) {
+      notification.error({message: e})
     }
   }
   async signInByPrivateKey(privateKey: string) {
@@ -69,8 +97,8 @@ class Wallet {
       this.setUp(wallet);
       return true;
     }
-    catch (e) {
-      alert(e)
+    catch (e: any) {
+      notification.error({message: e})
     }
   }
   async setUp(wallet: ethers.Wallet) {
@@ -79,11 +107,11 @@ class Wallet {
     this.getBalance(wallet.address);
   }
   create() {
-    const wallet = ethers.Wallet.createRandom(this._provider);
+    const wallet = ethers.Wallet.createRandom(this.provider);
     return wallet.mnemonic?.phrase
   }
   async getBalance(address: string) {
-    const balance = await this._provider.getBalance(address)
+    const balance = await this.provider.getBalance(address)
     this.balance = ethers.utils.formatEther(balance)
   }
   async getEstimatedTxFee(to: string, value: string) {
@@ -116,7 +144,7 @@ class Wallet {
       await this.getStakedTokens()
     }
     catch (e: any) {
-      alert('staked period not complete.')
+      notification.error({message: 'Staked period not complete.'})
     }
   }
   async getStakedTokens() {
@@ -130,15 +158,8 @@ class Wallet {
     const stakedPeriod = await stakingContract.stakingTimestamps(this.address);
     console.log(stakedPeriod)
   }
-  async getHistory(address: string) {
-    this.historyLoading = true;
-    const etherscanProvider = new ethers.providers.EtherscanProvider(this._network);
-    this.history = await etherscanProvider.getHistory(address);
-    this.history.reverse();
-    this.historyLoading = false;
-  }
   getLink(entity: 'address' | 'tx' | string, hash: string) {
-    return `https://goerli.etherscan.io/${entity}/${hash}`
+    return `${this.chain.blockScanUri}/${entity}/${hash}`
   }
   logout() {
     localStorage.clear();
@@ -146,8 +167,8 @@ class Wallet {
     this.privateKey = null;
   }
   watchBalance() {
-    this._provider.on('block', () => {
-      this._provider.getBalance(this.address!).then((balance) => {
+    this.provider.on('block', () => {
+      this.provider.getBalance(this.address!).then((balance) => {
         const newBalance = ethers.utils.formatEther(balance)
         if (newBalance !== this.balance) {
           console.log(`balance: ${newBalance} ETH`);

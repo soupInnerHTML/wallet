@@ -14,7 +14,7 @@ export const Stake: FC = observer(() => {
   }, [])
   return (
     <div>
-      {wallet.staked ? <p>staked: {wallet.staked} ETH</p> : <Loader />}
+      {wallet.staked ? <p>staked: {wallet.staked} {wallet.symbol}</p> : <Loader />}
       <br/>
       <input min={'0.001'} value={stakingAmount} onChange={e => setStakingAmount(e.target.value)} type="number"/>
       <button onClick={async () => {

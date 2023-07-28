@@ -11,7 +11,7 @@ enum Type {
 export const Receive: FC = observer(() => {
   const [type, setType] = useState(Type.wallet);
   const [amount, setAmount] = useState('0.1');
-  const link = `${config.baseUrl}/?to=${wallet.address}&amount=${amount}&sending=true`
+  const link = `${config.baseUrl}/send?to=${wallet.address}&amount=${amount}`
   return type === Type.wallet ? (
     <>
       <img src={`https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${wallet.address}&choe=UTF-8`} alt=""/>
