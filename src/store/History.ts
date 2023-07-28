@@ -14,7 +14,7 @@ class History {
     this.isLoading = true;
 
     try {
-      const etherscanProvider = new ethers.providers.EtherscanProvider(wallet.chain.chainId);
+      const etherscanProvider = new ethers.providers.EtherscanProvider(Number(wallet.chain.chainId));
       this.transactions = await etherscanProvider.getHistory(address)
     } catch (error) {
       console.error("Ошибка при загрузке транзакций:", error);

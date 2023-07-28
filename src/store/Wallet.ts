@@ -2,9 +2,7 @@ import {BigNumber, ethers} from "ethers";
 import Web3 from 'web3'
 import {makeAutoObservable} from "mobx";
 import {makePersistable} from "mobx-persist-store";
-import {secureStorage} from "../storage";
-import {STAKING_CONTRACT_ADDRESS} from "../contracts/addresses";
-import stakingAbi from 'contracts/abi/staking.json'
+import {secureStorage} from "../utils/storage";
 import {shortcutAddress} from "../utils/shortcut";
 import {Chains, IChain} from "../global/chains";
 import {notification} from "../utils/notification";
@@ -22,6 +20,9 @@ class Wallet {
     return Boolean(this.address)
   };
   chain = Chains.goerli;
+  setChain(chainId: string) {
+    this.chain = Object.values(Chains).find(chain => chain.chainId === chainId)!
+  }
   isChain(searchChain: IChain) {
     return this.chain.name === searchChain.name
   }
@@ -31,10 +32,10 @@ class Wallet {
   get provider() {
     return new ethers.providers.JsonRpcProvider(this.network)
   }
-  private async getStakingContract() {
-    const signer = new ethers.Wallet(this.privateKey!, this.provider)
-    return new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingAbi, signer);
-  }
+  // private async getStakingContract() {
+  //   const signer = new ethers.Wallet(this.privateKey!, this.provider)
+  //   return new ethers.Contract(STAKING_CONTRACT_ADDRESS, stakingAbi, signer);
+  // }
   balance: string | null = null;
 
   get symbol() {
@@ -46,7 +47,7 @@ class Wallet {
   }
 
   get niceBalance() {
-    return this.symbolical(Number(this.balance).toFixed(6))
+    return this.symbolical(+Number(this.balance).toFixed(6))
   }
   address: string | null = null;
   get niceAddress() {
@@ -54,7 +55,7 @@ class Wallet {
   }
   privateKey: string | null = null;
   sendLoading = false;
-  staked: string | null = null;
+  // staked: string | null = null;
 
   async send(to: string, amountInEther: string) {
     try {
@@ -130,34 +131,34 @@ class Wallet {
     }
 
   }
-  async stake(amount: string) {
-    const stakingContract = await this.getStakingContract()
-    const tx: ethers.providers.TransactionResponse = await stakingContract.stake({ value: ethers.utils.parseEther(amount) });
-    this.getStakedTokens()
-    return tx.hash
-  }
-  async unstake() {
-    try {
-      const stakingContract = await this.getStakingContract()
-      const tx = await stakingContract.unstake();
-      console.log(tx);
-      await this.getStakedTokens()
-    }
-    catch (e: any) {
-      notification.error({message: 'Staked period not complete.'})
-    }
-  }
-  async getStakedTokens() {
-    const stakingContract = await this.getStakingContract()
-    const stakedAmount = await stakingContract.balances(this.address);
-    this.staked = ethers.utils.formatEther(stakedAmount)
-    console.log(this.staked)
-  }
-  async getStakedPeriod() {
-    const stakingContract = await this.getStakingContract()
-    const stakedPeriod = await stakingContract.stakingTimestamps(this.address);
-    console.log(stakedPeriod)
-  }
+  // async stake(amount: string) {
+  //   const stakingContract = await this.getStakingContract()
+  //   const tx: ethers.providers.TransactionResponse = await stakingContract.stake({ value: ethers.utils.parseEther(amount) });
+  //   this.getStakedTokens()
+  //   return tx.hash
+  // }
+  // async unstake() {
+  //   try {
+  //     const stakingContract = await this.getStakingContract()
+  //     const tx = await stakingContract.unstake();
+  //     console.log(tx);
+  //     await this.getStakedTokens()
+  //   }
+  //   catch (e: any) {
+  //     notification.error({message: 'Staked period not complete.'})
+  //   }
+  // }
+  // async getStakedTokens() {
+  //   const stakingContract = await this.getStakingContract()
+  //   const stakedAmount = await stakingContract.balances(this.address);
+  //   this.staked = ethers.utils.formatEther(stakedAmount)
+  //   console.log(this.staked)
+  // }
+  // async getStakedPeriod() {
+  //   const stakingContract = await this.getStakingContract()
+  //   const stakedPeriod = await stakingContract.stakingTimestamps(this.address);
+  //   console.log(stakedPeriod)
+  // }
   getLink(entity: 'address' | 'tx' | string, hash: string) {
     return `${this.chain.blockScanUri}/${entity}/${hash}`
   }
@@ -182,7 +183,7 @@ class Wallet {
 
     makePersistable(this, {
       name: 'wallet',
-      properties: ['address', 'privateKey'],
+      properties: ['address', 'privateKey', 'chain'],
       storage: secureStorage
     }).then(() => {
       if(this.address) {

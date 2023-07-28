@@ -3,6 +3,7 @@ import {wallet} from "../store";
 import {observer} from "mobx-react-lite";
 
 import config from '../config.json'
+import {Text, Button} from "@library";
 
 enum Type {
   wallet, payment
@@ -15,16 +16,19 @@ export const Receive: FC = observer(() => {
   return type === Type.wallet ? (
     <>
       <img src={`https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${wallet.address}&choe=UTF-8`} alt=""/>
-      <p>{wallet.address}</p>
-
-      <button onClick={() => setType(Type.payment)}>request payment</button>
+      <br/>
+      <Text variant={'h1'}>{wallet.address}</Text>
+      <br/>
+      <Button onClick={() => setType(Type.payment)} text={'Request payment'} />
     </>
   ): (
     <>
       <img src={`https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${link.replaceAll("&", "%26")}&choe=UTF-8`} alt=""/>
       <br/>
       <input type="number" min={0.000001} value={amount} onChange={e => setAmount(e.target.value)}/>
-      <p>copy this link and share with sender or qr code</p>
+      <br/>
+      <Text variant={'h2'}>copy this link and share with sender or qr code</Text>
+      <br/>
       <a href={link}>{link}</a>
     </>
   );

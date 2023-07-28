@@ -7,6 +7,7 @@ import {History} from "./components/History";
 import {Stake} from "./components/Stake";
 import {Nft} from "./components/Nft";
 import {Send} from "./components/Send";
+import {Settings} from "./components/Settings";
 
 export function withParams(route: string, params: string[], isRouterCreation?: boolean) {
   return `${route}/${isRouterCreation ? ':' : ''}${params.join(isRouterCreation ? '/:' : '/')}`
@@ -20,7 +21,8 @@ export const Routes = {
   HISTORY: '/history',
   STAKE: '/stake',
   NFT: '/nft',
-  SEND: '/send'
+  SEND: '/send',
+  SETTINGS: '/settings'
 }
 
 export const router = createBrowserRouter([
@@ -59,5 +61,9 @@ export const router = createBrowserRouter([
   {
     path: Routes.SEND,
     element: <Send />,
+  },
+  {
+    path: Routes.SETTINGS,
+    element: <Settings />,
   },
 ]);

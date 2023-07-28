@@ -7,5 +7,6 @@ export const WalletCard = styled.div`
   align-items: center;
   display: flex;
   padding: 0 12px;
-  height: 60px;
+  height: 50px;
+  border: 2px solid rgb(188, 215, 240);
 `

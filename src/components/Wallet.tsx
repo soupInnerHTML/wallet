@@ -1,31 +1,35 @@
 import {observer} from "mobx-react-lite";
-import React, {useEffect} from "react";
+import React from "react";
 import {wallet} from "../store";
-import {useLocation, useNavigate} from "react-router-dom";
+import {useNavigate} from "react-router-dom";
 import {Routes} from "../router";
-import {Loader} from "./Loader";
 import {Blockie} from "@web3uikit/web3";
-import {Button} from "@web3uikit/core";
-import {Gift,  List, LogOut, NftCat, Send, Chest} from '@web3uikit/icons'
+import {Button, Skeleton, Tag} from "@web3uikit/core";
+import {Chest, Copy, Gift, List, LogOut, NftCat, Send} from '@web3uikit/icons'
 import {Text} from "../@library/Text";
-import {WalletAddress as WA} from "../@library/WalletAddress";
 import styled from "styled-components";
+import {shortcutAddress} from "../utils/shortcut";
+import {copyAddress} from "../utils/copyText";
 
-const WalletAddress = styled(WA)`
-  height: 36px;
-  margin: 12px 0;
+const WalletDetails = styled.div`
+ background: #ffffff;
+  margin-bottom: 40px;
+  border-radius: 12px;
+  padding: 12px;
+  border: 2px solid rgb(188, 215, 240);
 `
+
+const WalletAddress = styled(Tag)`
+  flex-direction: row-reverse;
+  gap: 4px;
+  cursor: pointer;
+`
+
+const TextPlaceholder = () => <Skeleton theme={'text'} width={'148px'} height={'24px'}></Skeleton>
 
 export const Wallet = observer(() => {
 
   const navigate = useNavigate()
-  const location = useLocation();
-
-  useEffect(() => {
-    if(!wallet.isAuthenticated) {
-      navigate(`/auth?next=${location.pathname}${location.search.replaceAll("&", "%26")}`)
-    }
-  }, [wallet.isAuthenticated])
 
   function quit() {
     // eslint-disable-next-line no-restricted-globals
@@ -37,21 +41,27 @@ export const Wallet = observer(() => {
   }
 
   return <>
-    {wallet.address  && <Blockie seed={wallet.address} size={20} />}
-    <WalletAddress />
+    <WalletDetails>
+    {wallet.address && <Blockie seed={wallet.address} size={20} />}
+    {wallet.address ? <div onClick={() => copyAddress(wallet.address!)}>
+      <WalletAddress
+        color={'blue'}
+        text={shortcutAddress(wallet.address!)}
+        prefixIcon={<Copy/>}
+      />
+    </div> : <TextPlaceholder />}
     {wallet.balance ? <Text
       variant="body18"
+      color={'dark'}
       title={wallet.balance}
     >
       {Number(wallet.balance).toFixed(6)} {wallet.symbol}
-    </Text> :
-      <Loader></Loader>}
-    <br/>
+    </Text> : <TextPlaceholder />}
+    </WalletDetails>
 
     <div style={{display: 'flex', gap: '12px'}}>
       <Button
         theme="outline"
-        type={'submit'}
         icon={<Send />}
         text={'Send'}
         onClick={() => navigate(Routes.SEND)}

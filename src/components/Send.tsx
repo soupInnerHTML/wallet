@@ -36,52 +36,49 @@ export const Send: React.FC<ISendProps> = observer(() => {
   }, [to, amount])
 
   return (
-    <>
-      <Header />
-      <form
-        style={{display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center'}}
-        onSubmit={(e) => {
-          e.preventDefault()
-          send();
-        }}
-      >
-      <div style={{display: 'flex', flexDirection: 'column', gap: '40px', marginBottom: '12px'}}>
-        <Input
-          style={{color: '#fff'}}
-          labelBgColor={'#282c34'}
-          disabled={wallet.sendLoading}
-          value={to}
-          onChange={e => setTo(e.target.value)}
-          type="text"
-          label={'To wallet address'}
-          placeholder={'0x68258EA339258FbB77Fb857e977F'}
-          errorMessage={'Invalid address'}
-          state={ethers.utils.isAddress(to || '0x68258EA339258FbB77Fb857e977F3798591F3812') ? 'initial' : 'error'}
-        />
-        <Input
-          labelBgColor={'#282c34'}
-          errorMessage={'Insufficient funds'}
-          state={!isEnoughBalance ? 'error' : 'initial'}
-          disabled={wallet.sendLoading}
-          value={amount}
-          onChange={e => setAmount(e.target.value)}
-          label={'Amount'}
-          placeholder={'0.01'}
-        />
-      </div>
-
-      {fee && <Typography>estimated fee: {fee} {wallet.symbol}</Typography>}
-      {fee && <Typography>total: {total} {wallet.symbol}</Typography>}
-
-      <Button
-        theme="outline"
-        type={'submit'}
-        disabled={isSendButtonDisabled}
-        icon={<SendIcon />}
-        text={'Send'}
+    <form
+      style={{display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center'}}
+      onSubmit={(e) => {
+        e.preventDefault()
+        send();
+      }}
+    >
+    <div style={{display: 'flex', flexDirection: 'column', gap: '40px', marginBottom: '12px'}}>
+      <Input
+        style={{color: '#fff'}}
+        labelBgColor={'#282c34'}
+        disabled={wallet.sendLoading}
+        value={to}
+        onChange={e => setTo(e.target.value)}
+        type="text"
+        label={'To wallet address'}
+        placeholder={'0x68258EA339258FbB77Fb857e977F'}
+        errorMessage={'Invalid address'}
+        state={ethers.utils.isAddress(to || '0x68258EA339258FbB77Fb857e977F3798591F3812') ? 'initial' : 'error'}
       />
-      {wallet.sendLoading && <Loader></Loader>}
-    </form>
-    </>
+      <Input
+        labelBgColor={'#282c34'}
+        errorMessage={'Insufficient funds'}
+        state={!isEnoughBalance ? 'error' : 'initial'}
+        disabled={wallet.sendLoading}
+        value={amount}
+        onChange={e => setAmount(e.target.value)}
+        label={'Amount'}
+        placeholder={'0.01'}
+      />
+    </div>
+
+    {fee && <Typography>estimated fee: {fee} {wallet.symbol}</Typography>}
+    {fee && <Typography>total: {total} {wallet.symbol}</Typography>}
+
+    <Button
+      theme="outline"
+      type={'submit'}
+      disabled={isSendButtonDisabled}
+      icon={<SendIcon />}
+      text={'Send'}
+    />
+    {wallet.sendLoading && <Loader></Loader>}
+  </form>
   );
 });
